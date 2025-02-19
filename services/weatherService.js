@@ -1,23 +1,26 @@
 import axios from "axios";
-import dotenv from "dotenv";
 
-dotenv.config();
-
-// Function to fetch weather data from OpenWeatherMap API
 export const getWeatherData = async (city) => {
-  if (!city) {
-    throw new Error("City is required");
-  }
-
-  const apiKey = process.env.WEATHER_API_KEY;
+  if (!city) return { error: "City is required." };
 
   try {
     const response = await axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`
+      `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.WEATHER_API_KEY}&units=metric`
     );
+
     return response.data;
   } catch (error) {
-    console.error("Error fetching weather data:", error.response?.data || error.message);
-    throw new Error("Failed to fetch weather data. Check city name or API status.");
+    if (error.response) {
+      const { status, data } = error.response;
+      console.error("OpenWeatherMap API Error:", data);
+
+      if (status === 404) return { error: "City not found. Please enter a valid city name." };
+      if (status === 429) return { error: "Too many requests. Try again later." };
+      if (status === 500) return { error: "Weather service is temporarily unavailable." };
+
+      return { error: `Unexpected API error: ${data.message}` };
+    }
+
+    return { error: "Failed to fetch weather data." };
   }
 };
